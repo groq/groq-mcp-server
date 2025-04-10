@@ -1,0 +1,92 @@
+[project]
+name = "groq-mcp"
+version = "0.1.0"
+description = "Groq MCP Server"
+requires-python = ">=3.11"
+authors = [
+    { name = "Jan Zheng", email = "jzheng@groq.com" }
+]
+readme = "README.md"
+license = { file = "LICENSE" }
+keywords = [
+    "groq",
+    "mcp",
+    "text-to-speech",
+    "speech-to-text",
+    "vision",
+    "chat",
+    "llama4"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+    "mcp[cli]>=1.6.0",
+    "fastapi>=0.109.2",
+    "uvicorn>=0.27.1",
+    "python-dotenv>=1.0.1",
+    "pydantic>=2.6.1",
+    "httpx>=0.28.1",
+    "sounddevice>=0.5.1",
+    "soundfile>=0.13.1",
+    "rapidfuzz>=3.6.1"
+]
+
+[project.urls]
+Homepage = "https://github.com/groq/groq-mcp"
+Repository = "https://github.com/groq/groq-mcp.git"
+Documentation = "https://github.com/groq/groq-mcp#readme"
+"Bug Tracker" = "https://github.com/groq/groq-mcp/issues"
+
+[project.scripts]
+groq-mcp = "server:main"
+groq-mcp-config = "config:main"
+
+[project.optional-dependencies]
+dev = [
+    "pre-commit>=3.6.2",
+    "ruff>=0.3.0",
+    "pytest>=8.0.0",
+    "pytest-cov>=4.1.0",
+    "pytest-mock>=3.12.0",
+    "pytest-asyncio>=0.23.5",
+    "Pillow>=10.0.0",
+    "numpy>=1.24.0",
+]
+
+[build-system]
+requires = ["hatchling>=1.21.0"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src", "."]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-v --cov=src --cov-report=term-missing"
+markers = [
+    "integration: marks tests that require external services (like Groq API)",
+    "unit: marks tests that don't require external services"
+]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::UserWarning"
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+select = ["E", "F", "B", "I"]
+ignore = []
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"

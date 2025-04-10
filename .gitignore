@@ -1,0 +1,32 @@
+*.pyc
+*.pyo
+*.pyd
+*.pyw
+*.pyz
+*.pywz
+
+.env
+.venv
+.cursor
+.cursorignore
+dist/
+.coverage
+coverage.xml
+.DS_STORE
+
+# Build artifacts
+build/
+*.egg-info/
+**/*.egg-info/
+.eggs/
+.hatch/
+
+# Cache
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+src/__pycache__/
+tests/__pycache__/
+.coverage
