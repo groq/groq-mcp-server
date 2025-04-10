@@ -169,7 +169,6 @@ The `scripts` directory contains several utility scripts for different Groq API 
 mcp install server.py
 mcp dev server.py
 ```
-```
 
 ## Troubleshooting
 
