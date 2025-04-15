@@ -2,7 +2,7 @@ import os
 import httpx
 from typing import Literal, Optional, List, Dict, Union
 from dotenv import load_dotenv
-from mcp.server.fastmcp import FastMCP
+from mcp.server.fastmcp import FastMCP, Context, Image
 from mcp.types import TextContent
 from src.utils import play_audio as core_play_audio
 
@@ -23,8 +23,8 @@ from src.groq_stt import (
 from src.groq_vision import (
     analyze_image as core_analyze_image,
     analyze_image_json as core_analyze_image_json,
-    VISION_MODEL_SCOUT,
-    VISION_MODEL_MAVERICK
+    VISION_MODELS,
+    DEFAULT_MODEL
 )
 
 # Import the TTT functions
@@ -211,38 +211,57 @@ def list_stt_models() -> TextContent:
     ⚠️ COST WARNING: This tool makes an API call to Groq which may incur costs. Only use when explicitly requested by the user.
 
     Args:
-        input_file_path: Path to the image file to analyze
+        image: Path to the image file to analyze, or a resource reference from the client (e.g. file upload, clipboard, etc)
         prompt: Text prompt describing what you want to know about the image (e.g., "What's in this image?")
         model: Which model to use ("scout" for a smaller Scout 17B*16experts model (default) or "maverick" for a larger Maverick 17B*128experts model)
         temperature: Controls randomness in the model's output (0.0-1.0)
         max_tokens: Maximum number of tokens to generate in the response
         output_directory: Optional directory to save output file (only used if save_to_file is True)
         save_to_file: Whether to save the description to a file (defaults to False)
-        
+        ctx: (optional) MCP Context for resource access and progress reporting
+        return_image: If True, return the image as a FastMCP Image object (default False)
     Returns:
-        Text content with the direct image description, or path to output file if save_to_file is True
+        Text content with the direct image description, or FastMCP Image if return_image is True, or path to output file if save_to_file is True
     """
 )
 def analyze_image(
-    input_file_path: str,
+    image: str,
     prompt: str = "What's in this image?",
-    model: Literal["scout", "maverick"] = "scout",
+    model: Literal["scout", "maverick"] = DEFAULT_MODEL,
     temperature: float = 0.7,
     max_tokens: int = 1024,
     output_directory: Optional[str] = None,
     save_to_file: bool = False,
-) -> TextContent:
-    # Map the model choice to the full model name
-    model_name = VISION_MODEL_MAVERICK if model == "maverick" else VISION_MODEL_SCOUT
-    return core_analyze_image(
-        input_file_path=input_file_path,
+    ctx: Context = None,
+    return_image: bool = False,
+) -> Union[TextContent, Image]:
+    """
+    Supports both file paths and client-uploaded images/resources via ctx.read_resource().
+    If return_image is True, returns a FastMCP Image object (for downstream use).
+    """
+    import os
+    img_data = None
+    if ctx is not None and image and image.startswith("resource://"):
+        # Client resource (uploaded/clipboard image)
+        img_data, mime_type = ctx.read_resource(image) if not hasattr(ctx, 'read_resource') or not callable(ctx.read_resource) else None
+        if img_data is None:
+            img_data, mime_type = ctx.read_resource(image)
+        input_source = img_data
+    else:
+        # Expand ~ to home directory if present
+        input_source = os.path.expanduser(image) if isinstance(image, str) and image.startswith("~") else image
+    result = core_analyze_image(
+        input_source=input_source,
         prompt=prompt,
-        model=model_name,
+        model=model,
         temperature=temperature,
         max_tokens=max_tokens,
         output_directory=output_directory,
         save_to_file=save_to_file
     )
+    if return_image and img_data is not None:
+        return Image(data=img_data, format=mime_type.split("/")[-1] if mime_type else "png")
+    return result
 
 @mcp.tool(
     description="""Analyze an image using Groq's vision API with either Scout (default) or Maverick model and generate a structured JSON response.
@@ -250,38 +269,56 @@ def analyze_image(
     ⚠️ COST WARNING: This tool makes an API call to Groq which may incur costs. Only use when explicitly requested by the user.
 
     Args:
-        input_file_path: Path to the image file to analyze
+        image: Path to the image file to analyze, or a resource reference from the client (e.g. file upload, clipboard, etc)
         prompt: Text prompt describing what you want to know about the image (e.g., "Extract key information from this image as JSON")
         model: Which model to use ("scout" for Scout 17B or "maverick" for Maverick 17B)
         temperature: Controls randomness in the model's output (0.0-1.0)
         max_tokens: Maximum number of tokens to generate in the response
         output_directory: Optional directory to save output file (only used if save_to_file is True)
         save_to_file: Whether to save the JSON response to a file (defaults to False)
-        
+        ctx: (optional) MCP Context for resource access and progress reporting
+        return_image: If True, return the image as a FastMCP Image object (default False)
     Returns:
-        Text content with the direct JSON response, or path to output file if save_to_file is True
+        Text content with the direct JSON response, or FastMCP Image if return_image is True, or path to output file if save_to_file is True
     """
 )
 def analyze_image_json(
-    input_file_path: str,
+    image: str,
     prompt: str = "Extract key information from this image as JSON",
-    model: Literal["scout", "maverick"] = "scout",
+    model: Literal["scout", "maverick"] = DEFAULT_MODEL,
     temperature: float = 0.2,
     max_tokens: int = 1024,
     output_directory: Optional[str] = None,
     save_to_file: bool = False,
-) -> TextContent:
-    # Map the model choice to the full model name
-    model_name = VISION_MODEL_MAVERICK if model == "maverick" else VISION_MODEL_SCOUT
-    return core_analyze_image_json(
-        input_file_path=input_file_path,
+    ctx: Context = None,
+    return_image: bool = False,
+) -> Union[TextContent, Image]:
+    """
+    Supports both file paths and client-uploaded images/resources via ctx.read_resource().
+    If return_image is True, returns a FastMCP Image object (for downstream use).
+    """
+    import os
+    img_data = None
+    if ctx is not None and image and image.startswith("resource://"):
+        img_data, mime_type = ctx.read_resource(image) if not hasattr(ctx, 'read_resource') or not callable(ctx.read_resource) else None
+        if img_data is None:
+            img_data, mime_type = ctx.read_resource(image)
+        input_source = img_data
+    else:
+        # Expand ~ to home directory if present
+        input_source = os.path.expanduser(image) if isinstance(image, str) and image.startswith("~") else image
+    result = core_analyze_image_json(
+        input_source=input_source,
         prompt=prompt,
-        model=model_name,
+        model=model,
         temperature=temperature,
         max_tokens=max_tokens,
         output_directory=output_directory,
         save_to_file=save_to_file
     )
+    if return_image and img_data is not None:
+        return Image(data=img_data, format=mime_type.split("/")[-1] if mime_type else "png")
+    return result
 
 @mcp.tool(
     description="""Generate a chat completion using Groq's API.

@@ -21,7 +21,9 @@ from src.utils import (
     make_output_path,
     make_output_file,
     handle_input_file,
+    MCPError
 )
+from datetime import datetime
 
 load_dotenv()
 groq_api_key = os.getenv("GROQ_API_KEY")
@@ -41,13 +43,68 @@ groq_client = httpx.Client(
 )
 
 # Supported models
-VISION_MODEL_SCOUT = "meta-llama/llama-4-scout-17b-16e-instruct"
-VISION_MODEL_MAVERICK = "meta-llama/llama-4-maverick-17b-128e-instruct"
-VISION_MODEL = VISION_MODEL_SCOUT  # Default to Scout
+VISION_MODELS = {
+    "scout": "meta-llama/llama-4-scout-17b-16e-instruct",
+    "maverick": "meta-llama/llama-4-maverick-17b-128e-instruct"
+}
+DEFAULT_MODEL = "scout"
+
+# Helper function to encode image bytes or read from path/URL
+def _prepare_image_content(input_source: Union[str, bytes]) -> tuple[str, str]:
+    """
+    Prepares image content for the API (base64 encoding) and determines a filename.
+
+    Args:
+        input_source: Either a file path (str), URL (str), or image bytes.
+
+    Returns:
+        Tuple: (base64_encoded_image, filename)
+    """
+    if isinstance(input_source, bytes):
+        # Input is raw bytes
+        try:
+            base64_image = base64.b64encode(input_source).decode('utf-8')
+            # TODO: Infer mime type properly if possible? Defaulting to jpeg for now.
+            # filename = f"uploaded_image_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jpeg" 
+            filename = f"uploaded_image_{datetime.now().strftime('%Y%m%d_%H%M%S')}" 
+            return f"data:image/jpeg;base64,{base64_image}", filename
+        except Exception as e:
+            make_error(f"Error encoding provided image bytes: {str(e)}")
+            
+    elif isinstance(input_source, str):
+        # Input is a string (path or URL)
+        is_url = input_source.startswith(('http://', 'https://'))
+        if is_url:
+            # Return URL directly, API handles fetching
+            filename = Path(input_source.split('?')[0]).name
+            return input_source, filename # Return URL itself, not base64 data
+        else:
+            # Handle local file path
+            file_path = handle_input_file(input_source, image_content_check=True)
+            try:
+                with open(file_path, "rb") as image_file:
+                    base64_image = base64.b64encode(image_file.read()).decode('utf-8')
+                # TODO: Infer mime type from file extension? Defaulting to jpeg.
+                mime_type = "image/jpeg" # Basic default
+                if file_path.suffix.lower() == ".png":
+                    mime_type = "image/png"
+                elif file_path.suffix.lower() == ".gif":
+                    mime_type = "image/gif"
+                elif file_path.suffix.lower() == ".webp":
+                    mime_type = "image/webp"
+                elif file_path.suffix.lower() == ".bmp":
+                    mime_type = "image/bmp"
+                    
+                return f"data:{mime_type};base64,{base64_image}", file_path.name
+            except Exception as e:
+                make_error(f"Error reading or encoding image file {file_path}: {str(e)}")
+    else:
+        make_error("Invalid input source type for image analysis.")
 
 def analyze_image(
-    input_file_path: str,
+    input_source: Union[str, bytes],
     prompt: str = "What's in this image?",
+    model: Literal["scout", "maverick"] = DEFAULT_MODEL,
     temperature: float = 0.7,
     max_tokens: int = 1024,
     output_directory: Optional[str] = None,
@@ -61,41 +118,33 @@ def analyze_image(
     if temperature < 0.0 or temperature > 1.0:
         make_error("Temperature must be between 0.0 and 1.0")
     
-    # Check if input is a URL
-    is_url = input_file_path.startswith(('http://', 'https://'))
-    
+    # Validate and get model
+    if model not in VISION_MODELS:
+        make_error(f"Invalid model. Must be one of: {', '.join(VISION_MODELS.keys())}")
+    model_name = VISION_MODELS[model]
+
+    # Prepare image data (handles path, URL, or bytes)
+    try:
+        image_url_data, file_name = _prepare_image_content(input_source)
+    except Exception as e:
+        make_error(f"Failed to prepare image content: {str(e)}")
+
+    # Construct payload content
     content = [
         {"type": "text", "text": prompt}
     ]
-
-    if is_url:
-        # For URLs, use them directly
-        content.append({
-            "type": "image_url",
-            "image_url": {
-                "url": input_file_path
-            }
-        })
-        file_name = Path(input_file_path.split('?')[0]).name  # Get filename from URL
-    else:
-        # Handle local files as before
-        file_path = handle_input_file(input_file_path, image_content_check=True)
-        try:
-            with open(file_path, "rb") as image_file:
-                base64_image = base64.b64encode(image_file.read()).decode('utf-8')
-            content.append({
-                "type": "image_url",
-                "image_url": {
-                    "url": f"data:image/jpeg;base64,{base64_image}"
-                }
-            })
-            file_name = file_path.name
-        except Exception as e:
-            make_error(f"Error reading or encoding image: {str(e)}")
+    
+    # Add the image data (either URL or base64 data URI)
+    content.append({
+        "type": "image_url",
+        "image_url": {
+            "url": image_url_data
+        }
+    })
 
     # Prepare the request payload
     payload = {
-        "model": VISION_MODEL,
+        "model": model_name,
         "messages": [
             {
                 "role": "user",
@@ -144,7 +193,7 @@ def analyze_image(
         
         return TextContent(
             type="text",
-            text=f"Success. Image analysis saved as: {output_file_path}\nModel used: {VISION_MODEL}"
+            text=f"Success. Image analysis saved as: {output_file_path}\nModel used: {model_name}"
         )
     else:
         return TextContent(
@@ -153,8 +202,9 @@ def analyze_image(
         )
 
 def analyze_image_json(
-    input_file_path: str,
+    input_source: Union[str, bytes],
     prompt: str = "Extract key information from this image as JSON",
+    model: Literal["scout", "maverick"] = DEFAULT_MODEL,
     temperature: float = 0.2,
     max_tokens: int = 1024,
     output_directory: Optional[str] = None,
@@ -168,30 +218,33 @@ def analyze_image_json(
     if temperature < 0.0 or temperature > 1.0:
         make_error("Temperature must be between 0.0 and 1.0")
     
-    # Get the input file
-    file_path = handle_input_file(input_file_path, image_content_check=True)
+    # Validate and get model
+    if model not in VISION_MODELS:
+        make_error(f"Invalid model. Must be one of: {', '.join(VISION_MODELS.keys())}")
+    model_name = VISION_MODELS[model]
     
-    # Read and encode the image
+    # Prepare image data (handles path, URL, or bytes)
     try:
-        with open(file_path, "rb") as image_file:
-            base64_image = base64.b64encode(image_file.read()).decode('utf-8')
+        image_url_data, file_name = _prepare_image_content(input_source)
     except Exception as e:
-        make_error(f"Error reading or encoding image: {str(e)}")
-    
-    # Create the message content
+        make_error(f"Failed to prepare image content: {str(e)}")
+
+    # Construct payload content
     content = [
-        {"type": "text", "text": prompt},
-        {
-            "type": "image_url",
-            "image_url": {
-                "url": f"data:image/jpeg;base64,{base64_image}"
-            }
-        }
+        {"type": "text", "text": prompt}
     ]
+
+    # Add the image data (either URL or base64 data URI)
+    content.append({
+        "type": "image_url",
+        "image_url": {
+            "url": image_url_data
+        }
+    })
 
     # Prepare the request payload
     payload = {
-        "model": VISION_MODEL,
+        "model": model_name,
         "messages": [
             {
                 "role": "user",
@@ -232,7 +285,7 @@ def analyze_image_json(
     # Save the JSON response to a file if requested
     if save_to_file:
         output_path = make_output_path(output_directory, base_path)
-        output_file_path = make_output_file("groq-vision-json", file_path.name, output_path, "json")
+        output_file_path = make_output_file("groq-vision-json", file_name, output_path, "json")
         
         output_file_path.parent.mkdir(parents=True, exist_ok=True)
         with open(output_file_path, "w") as f:
@@ -240,7 +293,7 @@ def analyze_image_json(
         
         return TextContent(
             type="text",
-            text=f"Success. JSON analysis saved as: {output_file_path}\nModel used: {VISION_MODEL}"
+            text=f"Success. JSON analysis saved as: {output_file_path}\nModel used: {model_name}"
         )
     else:
         return TextContent(
