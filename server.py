@@ -46,6 +46,12 @@ from src.groq_batch import (
     list_batches_formatted
 )
 
+# Import the compound functions
+from src.groq_compound import (
+    compound_chat as core_compound_chat,
+    compound_chat_stream as core_compound_chat_stream
+)
+
 load_dotenv()
 groq_api_key = os.getenv("GROQ_API_KEY")
 base_path = os.getenv("BASE_OUTPUT_PATH")
@@ -211,7 +217,7 @@ def list_stt_models() -> TextContent:
     ⚠️ COST WARNING: This tool makes an API call to Groq which may incur costs. Only use when explicitly requested by the user.
 
     Args:
-        image: Path to the image file to analyze, or a resource reference from the client (e.g. file upload, clipboard, etc)
+        image: Path to the image file to analyze, a resource reference from the client (e.g. file upload, clipboard, etc), base64-encoded image data, or raw image buffer
         prompt: Text prompt describing what you want to know about the image (e.g., "What's in this image?")
         model: Which model to use ("scout" for a smaller Scout 17B*16experts model (default) or "maverick" for a larger Maverick 17B*128experts model)
         temperature: Controls randomness in the model's output (0.0-1.0)
@@ -236,20 +242,28 @@ def analyze_image(
     return_image: bool = False,
 ) -> Union[TextContent, Image]:
     """
-    Supports both file paths and client-uploaded images/resources via ctx.read_resource().
+    Supports file paths, client-uploaded images/resources via ctx.read_resource(),
+    base64-encoded image data, and raw image buffers.
     If return_image is True, returns a FastMCP Image object (for downstream use).
     """
     import os
+    # Skip validation for base64 data since we now handle it in _prepare_image_content
+    
     img_data = None
-    if ctx is not None and image and image.startswith("resource://"):
+    if ctx is not None and isinstance(image, str) and image.startswith("resource://"):
         # Client resource (uploaded/clipboard image)
         img_data, mime_type = ctx.read_resource(image) if not hasattr(ctx, 'read_resource') or not callable(ctx.read_resource) else None
         if img_data is None:
             img_data, mime_type = ctx.read_resource(image)
         input_source = img_data
     else:
-        # Expand ~ to home directory if present
-        input_source = os.path.expanduser(image) if isinstance(image, str) and image.startswith("~") else image
+        # Handle file paths and base64/buffer data
+        if isinstance(image, str) and image.startswith("~"):
+            # Expand ~ to home directory if present
+            input_source = os.path.expanduser(image)
+        else:
+            input_source = image
+            
     result = core_analyze_image(
         input_source=input_source,
         prompt=prompt,
@@ -269,7 +283,7 @@ def analyze_image(
     ⚠️ COST WARNING: This tool makes an API call to Groq which may incur costs. Only use when explicitly requested by the user.
 
     Args:
-        image: Path to the image file to analyze, or a resource reference from the client (e.g. file upload, clipboard, etc)
+        image: Path to the image file to analyze, a resource reference from the client (e.g. file upload, clipboard, etc), base64-encoded image data, or raw image buffer
         prompt: Text prompt describing what you want to know about the image (e.g., "Extract key information from this image as JSON")
         model: Which model to use ("scout" for Scout 17B or "maverick" for Maverick 17B)
         temperature: Controls randomness in the model's output (0.0-1.0)
@@ -294,19 +308,28 @@ def analyze_image_json(
     return_image: bool = False,
 ) -> Union[TextContent, Image]:
     """
-    Supports both file paths and client-uploaded images/resources via ctx.read_resource().
+    Supports file paths, client-uploaded images/resources via ctx.read_resource(),
+    base64-encoded image data, and raw image buffers.
     If return_image is True, returns a FastMCP Image object (for downstream use).
     """
     import os
+    # Skip validation for base64 data since we now handle it in _prepare_image_content
+    
     img_data = None
-    if ctx is not None and image and image.startswith("resource://"):
+    if ctx is not None and isinstance(image, str) and image.startswith("resource://"):
+        # Client resource (uploaded/clipboard image)
         img_data, mime_type = ctx.read_resource(image) if not hasattr(ctx, 'read_resource') or not callable(ctx.read_resource) else None
         if img_data is None:
             img_data, mime_type = ctx.read_resource(image)
         input_source = img_data
     else:
-        # Expand ~ to home directory if present
-        input_source = os.path.expanduser(image) if isinstance(image, str) and image.startswith("~") else image
+        # Handle file paths and base64/buffer data
+        if isinstance(image, str) and image.startswith("~"):
+            # Expand ~ to home directory if present
+            input_source = os.path.expanduser(image)
+        else:
+            input_source = image
+            
     result = core_analyze_image_json(
         input_source=input_source,
         prompt=prompt,
@@ -521,6 +544,49 @@ def batch_results(
 )
 def list_batches() -> TextContent:
     return list_batches_formatted()
+
+
+@mcp.tool(
+    description="""Use Groq's Compound-Beta API for advanced AI tasks involving web search and code execution.
+    This tool is specifically designed for tasks that require real-time information lookup or code manipulation.
+    It can autonomously:
+    1. Search the web for current information
+    2. Write and execute code
+    3. Combine multiple tools to solve complex problems
+
+    FOR ANY COMPLEX TASK, USE THIS TOOL. INCLUDING: WEB SEARCH, CODE EXECUTION, INTERNET SEARCH LIKE BITCOIN PRICES OR WEATHER LOOKUPS.
+    
+    ⚠️ COST WARNING: This tool makes API calls to Groq which may incur costs. Only use when explicitly requested by the user.
+    
+    The tool supports three models:
+    - compound-beta-mini: Fastest, limited to one tool use (default)
+    - compound-beta: Balanced performance with multiple tool uses
+    - compound-beta-deep: Most thorough analysis with extensive tool use
+    
+    Args:
+        messages: List of message dictionaries with 'role' and 'content' keys
+        model: The compound model to use
+        output_directory: Directory to save output (if save_to_file is True)
+        save_to_file: Whether to save the response to a file
+        
+    Returns:
+        Text content with the AI response, including any tool executions performed
+    """
+)
+def compound_tool(
+    messages: List[Dict[str, str]],
+    model: str = "compound-beta-mini",
+    output_directory: Optional[str] = None,
+    save_to_file: bool = False,  # Default to False since we want to return content to client
+) -> TextContent:
+    return core_compound_chat(
+        messages=messages,
+        model=model,
+        stream=False,  # Always use non-streaming mode
+        output_directory=output_directory,
+        save_to_file=save_to_file
+    )
+
 
 def main():
     print("Starting Groq TTS server")

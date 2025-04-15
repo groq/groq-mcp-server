@@ -55,7 +55,7 @@ def _prepare_image_content(input_source: Union[str, bytes]) -> tuple[str, str]:
     Prepares image content for the API (base64 encoding) and determines a filename.
 
     Args:
-        input_source: Either a file path (str), URL (str), or image bytes.
+        input_source: Either a file path (str), URL (str), base64 string, or image bytes.
 
     Returns:
         Tuple: (base64_encoded_image, filename)
@@ -65,19 +65,39 @@ def _prepare_image_content(input_source: Union[str, bytes]) -> tuple[str, str]:
         try:
             base64_image = base64.b64encode(input_source).decode('utf-8')
             # TODO: Infer mime type properly if possible? Defaulting to jpeg for now.
-            # filename = f"uploaded_image_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jpeg" 
             filename = f"uploaded_image_{datetime.now().strftime('%Y%m%d_%H%M%S')}" 
             return f"data:image/jpeg;base64,{base64_image}", filename
         except Exception as e:
             make_error(f"Error encoding provided image bytes: {str(e)}")
             
     elif isinstance(input_source, str):
-        # Input is a string (path or URL)
-        is_url = input_source.startswith(('http://', 'https://'))
-        if is_url:
+        # Check if input is already a base64 data URI
+        if input_source.startswith('data:image/'):
+            try:
+                # Extract mime type and filename
+                mime_type = input_source.split(';')[0].split(':')[1]
+                extension = mime_type.split('/')[1]
+                filename = f"base64_image_{datetime.now().strftime('%Y%m%d_%H%M%S')}.{extension}"
+                return input_source, filename
+            except Exception as e:
+                make_error(f"Error processing base64 data URI: {str(e)}")
+                
+        # Check if input is a raw base64 string (without data URI prefix)
+        elif len(input_source) > 100 and all(c in 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=' for c in input_source):
+            try:
+                # Default to JPEG for raw base64 strings
+                filename = f"base64_image_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jpeg"
+                return f"data:image/jpeg;base64,{input_source}", filename
+            except Exception as e:
+                make_error(f"Error processing base64 string: {str(e)}")
+                
+        # Input is a URL
+        elif input_source.startswith(('http://', 'https://')):
             # Return URL directly, API handles fetching
             filename = Path(input_source.split('?')[0]).name
             return input_source, filename # Return URL itself, not base64 data
+            
+        # Input is a file path
         else:
             # Handle local file path
             file_path = handle_input_file(input_source, image_content_check=True)
