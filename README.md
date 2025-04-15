@@ -6,6 +6,12 @@ Use MCP to access vision models for interpreting visual data from images, instan
 
 With the Groq MCP server you can try tasks like:
 
+### Agentic Tasks, Code Generation & Web Search
+- What is Groq's Compound Beta? Use the compound tool. Summarize with one line then turn into voice
+- Please retrieve the current Bitcoin price from CoinGecko API and calculate the value of 0.38474 bitcoins?
+- What is the weather in SF right now?
+- Generate and run code, which means you can make API calls, get data from webpages, and much more
+
 ### Vision & Understanding
 - "Describe this image [URL to image]"
 - "Analyze this image and extract key information as JSON [URL to image]"
