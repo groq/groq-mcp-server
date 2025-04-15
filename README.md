@@ -11,6 +11,7 @@ With the Groq MCP server you can try tasks like:
 - Please retrieve the current Bitcoin price from CoinGecko API and calculate the value of 0.38474 bitcoins?
 - What is the weather in SF right now?
 - Generate and run code, which means you can make API calls, get data from webpages, and much more
+- This feature uses the new `compound-beta` [agentic tools system](https://console.groq.com/docs/agentic-tooling)
 
 ### Vision & Understanding
 - "Describe this image [URL to image]"
