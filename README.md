@@ -1,9 +1,29 @@
-[Model Context Protocol (MCP)](https://github.com/modelcontextprotocol) server for the [Groq](https://groq.com) API. Fast inference and low latency for multimodal models with vision capabilities for understanding and interpreting visual data from images, instantly generating text to speech, transcribing speech to text, and access to [batch](https://console.groq.com/docs/batch) processing for larger workloads.
+# Groq MCP Server
+
+Query models hosted on [Groq](https://console.groq.com/docs/models) for lightning-fast inference directly from Claude and other MCP clients through the [Model Context Protocol (MCP)](https://github.com/modelcontextprotocol).
+
+Use MCP to access vision models for interpreting visual data from images, instantly generate speech from text, process thousands of requests through Groq's [batch processing](https://console.groq.com/docs/batch), and even build apps with full access to Groq's documentation.
+
+With the Groq MCP server you can try tasks like:
+
+### Vision & Understanding
+- "Describe this image [URL to image]"
+- "Analyze this image and extract key information as JSON [URL to image]"
+
+### Speech & Audio
+- "Convert this text to speech using the Arista-PlayAI voice: [text]"
+- "Read this text aloud in Arabic: [text]"
+- "Transcribe this audio file using whisper-large-v3: [url to mp3]"
+- "Translate this foreign language audio to English [url to mp3]"
+
+### Batch Processing
+- "Process the following batch of prompts: [location of a jsonlines file]" (read more [here](https://console.groq.com/docs/batch))
+
 
 
 ## Quickstart with Claude Desktop
 
-1. Get your API key from [Groq Console](https://console.groq.com/home). We have a free tier with generous limits!
+- Get a Groq API key for free at [console.groq.com](https://console.groq.com)
 2. Install `uv` (Python package manager), install with `curl -LsSf https://astral.sh/uv/install.sh | sh` or see the `uv` [repo](https://github.com/astral-sh/uv) for additional install methods.
 3. Go to Claude > Settings > Developer > Edit Config > claude_desktop_config.json to include the following:
 
@@ -24,6 +44,8 @@
 ```
 
 If you're using Windows, you will have to enable "Developer Mode" in Claude Desktop to use the MCP server. Click "Help" in the hamburger menu in the top left and select "Enable Developer Mode".
+
+If you want to install the MCP from code, scroll down to "Contributing".
 
 
 ## Other MCP Clients
@@ -60,22 +82,6 @@ That's it! Your MCP client can now use these Groq capabilities:
 - 📦 Batch: Process large workloads efficiently
 
 
-## Example Usage
-
-Try asking Claude to use Groq's capabilities:
-
-### Vision & Understanding
-- "What's in this image?" (Add a URL)
-- "Look at this image and describe what you see in detail"
-- "Analyze this image and extract key information as JSON"
-- "Examine this diagram and explain its components"
-
-### Speech & Audio
-- "Convert this text to speech using the Arista-PlayAI voice"
-- "Read this text aloud in Arabic using playai-tts-arabic"
-- "Transcribe this audio file using whisper-large-v3"
-- "Translate this foreign language audio to English"
-
 ## Contributing
 
 If you want to contribute or run from source:
@@ -86,7 +92,7 @@ If you want to contribute or run from source:
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/groq/groq-mcp
+   git clone https://github.com/groq/groq-mcp-server
    cd groq-mcp
    ```
 
@@ -100,7 +106,13 @@ If you want to contribute or run from source:
    - Set up pre-commit hooks
    - Activate the virtual environment
 
-3. Copy `.env.example` to `.env` and add your Groq API key:
+3. Run the Claude install script:
+   ```bash
+   ./scripts/install.sh
+   ```
+   On Macs, this will install the Groq MCP server in Claude Desktop, at `~/Library/Application Support/Claude/claude_desktop_config.json`. Make sure to refresh or restart Claude Desktop.
+
+4. Copy `.env.example` to `.env` and add your Groq API key:
    ```bash
    cp .env.example .env
    # Edit .env and add your API key
@@ -110,7 +122,7 @@ If you want to contribute or run from source:
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/groq/groq-mcp
+   git clone https://github.com/groq/groq-mcp-server
    cd groq-mcp
    ```
 
