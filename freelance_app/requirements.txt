@@ -1,0 +1,64 @@
+# AI Freelance Search App - Python Dependencies
+
+# FastAPI and Web Framework
+fastapi==0.109.2
+uvicorn[standard]==0.27.1
+python-multipart==0.0.9
+
+# Database
+sqlalchemy==2.0.25
+psycopg2-binary==2.9.9
+alembic==1.13.1
+
+# Redis (for caching and task queue)
+redis==5.0.1
+celery==5.3.6
+
+# Authentication & Security
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+bcrypt==4.1.2
+
+# Pydantic Settings
+pydantic==2.6.1
+pydantic-settings==2.1.0
+email-validator==2.1.0
+
+# Environment Variables
+python-dotenv==1.0.1
+
+# HTTP Client
+httpx==0.28.1
+requests==2.31.0
+
+# Web Scraping
+beautifulsoup4==4.12.3
+scrapy==2.11.0
+selenium==4.17.2
+lxml==5.1.0
+
+# Data Processing
+pandas==2.2.0
+numpy==1.26.3
+
+# CORS
+python-cors==1.0.0
+
+# Logging
+loguru==0.7.2
+
+# Testing
+pytest==8.0.0
+pytest-asyncio==0.23.5
+pytest-cov==4.1.0
+pytest-mock==3.12.0
+httpx-mock==0.15.0
+
+# Code Quality
+ruff==0.3.0
+black==24.2.0
+mypy==1.8.0
+
+# Documentation
+mkdocs==1.5.3
+mkdocs-material==9.5.9
