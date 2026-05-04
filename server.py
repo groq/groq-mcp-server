@@ -212,6 +212,7 @@ def list_stt_models() -> TextContent:
     return core_list_stt_models()
 
 @mcp.tool(
+    structured_output=False,
     description="""Analyze an image using Groq's vision API with either Scout (default) or Maverick model and generate descriptive text.
     
     ⚠️ COST WARNING: This tool makes an API call to Groq which may incur costs. Only use when explicitly requested by the user.
@@ -278,6 +279,7 @@ def analyze_image(
     return result
 
 @mcp.tool(
+    structured_output=False,
     description="""Analyze an image using Groq's vision API with either Scout (default) or Maverick model and generate a structured JSON response.
     
     ⚠️ COST WARNING: This tool makes an API call to Groq which may incur costs. Only use when explicitly requested by the user.
@@ -589,7 +591,6 @@ def compound_tool(
 
 
 def main():
-    print("Starting Groq TTS server")
     mcp.run()
 
 if __name__ == "__main__":

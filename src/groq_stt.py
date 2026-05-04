@@ -29,14 +29,17 @@ base_path = os.getenv("BASE_OUTPUT_PATH")
 if not groq_api_key:
     raise ValueError("GROQ_API_KEY environment variable is required")
 
-# Create a custom httpx client with the Groq API key
-groq_client = httpx.Client(
-    base_url="https://api.groq.com/openai/v1",
-    headers={
-        "Authorization": f"Bearer {groq_api_key}",
-        "Content-Type": "application/json",
-    },
-)
+# Lazy httpx client — defers ~2s Client creation until first API call
+_groq_client = None
+
+def _get_client():
+    global _groq_client
+    if _groq_client is None:
+        _http_proxy = os.getenv("HTTP_PROXY") or os.getenv("http_proxy")
+        _https_proxy = os.getenv("HTTPS_PROXY") or os.getenv("https_proxy")
+        _proxy = _https_proxy or _http_proxy
+        _groq_client = httpx.Client(proxy=_proxy)
+    return _groq_client
 
 # Define available models
 STT_MODELS = [
@@ -89,7 +92,7 @@ def transcribe_audio(
             files["timestamp_granularities[]"] = (None, granularity)
 
     # Make the API request
-    response = httpx.post(
+    response = _get_client().post(
         "https://api.groq.com/openai/v1/audio/transcriptions",
         headers={"Authorization": f"Bearer {groq_api_key}"},
         files=files
@@ -170,7 +173,7 @@ def translate_audio(
         files["prompt"] = (None, prompt)
     
     # Make the API request
-    response = httpx.post(
+    response = _get_client().post(
         "https://api.groq.com/openai/v1/audio/translations",
         headers={"Authorization": f"Bearer {groq_api_key}"},
         files=files

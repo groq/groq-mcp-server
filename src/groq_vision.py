@@ -32,15 +32,25 @@ base_path = os.getenv("BASE_OUTPUT_PATH")
 if not groq_api_key:
     raise ValueError("GROQ_API_KEY environment variable is required")
 
-# Create a custom httpx client with the Groq API key
-groq_client = httpx.Client(
-    base_url="https://api.groq.com/openai/v1",
-    headers={
-        "Authorization": f"Bearer {groq_api_key}",
-        "Content-Type": "application/json",
-    },
-    timeout=60.0,  # vision models may take longer to process
-)
+# Lazy httpx client — defers ~2s Client creation until first API call
+_groq_client = None
+
+def _get_client():
+    global _groq_client
+    if _groq_client is None:
+        _http_proxy = os.getenv("HTTP_PROXY") or os.getenv("http_proxy")
+        _https_proxy = os.getenv("HTTPS_PROXY") or os.getenv("https_proxy")
+        _proxy = _https_proxy or _http_proxy
+        _groq_client = httpx.Client(
+            base_url="https://api.groq.com/openai/v1",
+            headers={
+                "Authorization": f"Bearer {groq_api_key}",
+                "Content-Type": "application/json",
+            },
+            proxy=_proxy,
+            timeout=60.0,  # vision models may take longer to process
+        )
+    return _groq_client
 
 # Supported models
 VISION_MODELS = {
@@ -178,7 +188,7 @@ def analyze_image(
 
     # Make the API request
     try:
-        response = groq_client.post("/chat/completions", json=payload)
+        response = _get_client().post("/chat/completions", json=payload)
         response.raise_for_status()
     except httpx.HTTPStatusError as e:
         try:
@@ -203,7 +213,7 @@ def analyze_image(
         output_file_path = make_output_file("groq-vision", file_name, output_path, "txt")
         
         output_file_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(output_file_path, "w") as f:
+        with open(output_file_path, "w", encoding="utf-8") as f:
             f.write(description)
         
         # Also save the full response for reference
@@ -279,7 +289,7 @@ def analyze_image_json(
 
     # Make the API request
     try:
-        response = groq_client.post("/chat/completions", json=payload)
+        response = _get_client().post("/chat/completions", json=payload)
         response.raise_for_status()
     except httpx.HTTPStatusError as e:
         try:
@@ -308,7 +318,7 @@ def analyze_image_json(
         output_file_path = make_output_file("groq-vision-json", file_name, output_path, "json")
         
         output_file_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(output_file_path, "w") as f:
+        with open(output_file_path, "w", encoding="utf-8") as f:
             f.write(json_response)
         
         return TextContent(

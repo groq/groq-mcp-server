@@ -27,14 +27,24 @@ base_path = os.getenv("BASE_OUTPUT_PATH")
 if not groq_api_key:
     raise ValueError("GROQ_API_KEY environment variable is required")
 
-# Create a custom httpx client with the Groq API key
-groq_client = httpx.Client(
-    base_url="https://api.groq.com/openai/v1",
-    headers={
-        "Authorization": f"Bearer {groq_api_key}",
-        "Content-Type": "application/json",
-    },
-)
+# Lazy httpx client — defers ~2s Client creation until first API call
+_groq_client = None
+
+def _get_client():
+    global _groq_client
+    if _groq_client is None:
+        _http_proxy = os.getenv("HTTP_PROXY") or os.getenv("http_proxy")
+        _https_proxy = os.getenv("HTTPS_PROXY") or os.getenv("https_proxy")
+        _proxy = _https_proxy or _http_proxy
+        _groq_client = httpx.Client(
+            base_url="https://api.groq.com/openai/v1",
+            headers={
+                "Authorization": f"Bearer {groq_api_key}",
+                "Content-Type": "application/json",
+            },
+            proxy=_proxy,
+        )
+    return _groq_client
 
 # Define available voices
 ENGLISH_VOICES = [
@@ -77,7 +87,7 @@ def text_to_speech(
     output_file_path = make_output_file("groq-tts", text[:30], output_path, "wav")
     
     # Prepare the request to Groq API
-    response = groq_client.post(
+    response = _get_client().post(
         "/audio/speech",
         json={
             "model": model,
