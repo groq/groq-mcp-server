@@ -62,7 +62,7 @@ from src.groq_vision import analyze_image
 from mcp.types import TextContent
 
 result = analyze_image(
-    input_file_path='$IMAGE_FILE',
+    input_source='$IMAGE_FILE',
     prompt='$PROMPT',
     temperature=$TEMPERATURE,
     max_tokens=$MAX_TOKENS,

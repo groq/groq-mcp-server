@@ -8,7 +8,7 @@ from src.utils import MCPError
 def test_analyze_image(temp_dir, mock_groq_api_key, mock_httpx_client, sample_image_file):
     """Test basic image analysis"""
     result = analyze_image(
-        input_file_path=str(sample_image_file),
+        input_source=str(sample_image_file),
         prompt="What's in this image?",
         output_directory=str(temp_dir)
     )
@@ -34,7 +34,7 @@ def test_analyze_image(temp_dir, mock_groq_api_key, mock_httpx_client, sample_im
 def test_analyze_image_json(temp_dir, mock_groq_api_key, mock_httpx_client, sample_image_file):
     """Test JSON-formatted image analysis"""
     result = analyze_image_json(
-        input_file_path=str(sample_image_file),
+        input_source=str(sample_image_file),
         prompt="Extract key information from this image as JSON",
         output_directory=str(temp_dir)
     )
@@ -75,7 +75,7 @@ def test_invalid_image_file(temp_dir, mock_groq_api_key, mock_httpx_client):
     """Test that invalid image file raises error"""
     with pytest.raises(MCPError):
         analyze_image(
-            input_file_path="nonexistent.jpg",
+            input_source="nonexistent.jpg",
             output_directory=str(temp_dir)
         )
 
@@ -84,7 +84,7 @@ def test_invalid_prompt(temp_dir, mock_groq_api_key, mock_httpx_client, sample_i
     """Test that empty prompt raises error"""
     with pytest.raises(MCPError, match="Prompt is required"):
         analyze_image(
-            input_file_path=str(sample_image_file),
+            input_source=str(sample_image_file),
             prompt="",
             output_directory=str(temp_dir)
         )
@@ -95,7 +95,7 @@ def test_invalid_temperature(temp_dir, mock_groq_api_key, mock_httpx_client, sam
     """Test that invalid temperature raises error"""
     with pytest.raises(MCPError):
         analyze_image(
-            input_file_path=str(sample_image_file),
+            input_source=str(sample_image_file),
             temperature=temperature,
             output_directory=str(temp_dir)
         )
@@ -104,7 +104,7 @@ def test_invalid_temperature(temp_dir, mock_groq_api_key, mock_httpx_client, sam
 def test_analyze_image_integration(temp_dir, mock_groq_api_key, sample_image_file):
     """Integration test for image analysis"""
     result = analyze_image(
-        input_file_path=str(sample_image_file),
+        input_source=str(sample_image_file),
         prompt="Please describe this image, including its colors, shapes, and composition.",  # More specific prompt
         output_directory=str(temp_dir)
     )
@@ -148,7 +148,7 @@ def test_analyze_image_integration(temp_dir, mock_groq_api_key, sample_image_fil
 def test_analyze_image_json_integration(temp_dir, mock_groq_api_key, sample_image_file):
     """Integration test for JSON-formatted image analysis"""
     result = analyze_image_json(
-        input_file_path=str(sample_image_file),
+        input_source=str(sample_image_file),
         prompt="Extract key information from this image as JSON",
         output_directory=str(temp_dir)
     )
@@ -189,7 +189,7 @@ def test_vision_quality_checks(temp_dir, mock_groq_api_key, sample_image_file):
     """Test basic quality indicators of vision responses"""
     # Test regular response
     result = analyze_image(
-        input_file_path=str(sample_image_file),
+        input_source=str(sample_image_file),
         prompt="What's in this image?",
         output_directory=str(temp_dir)
     )
@@ -212,7 +212,7 @@ def test_vision_quality_checks(temp_dir, mock_groq_api_key, sample_image_file):
     
     # Test JSON response quality
     result_json = analyze_image_json(
-        input_file_path=str(sample_image_file),
+        input_source=str(sample_image_file),
         prompt="Extract key information from this image as JSON",
         output_directory=str(temp_dir)
     )
@@ -261,7 +261,7 @@ def test_vision_robustness(temp_dir, mock_groq_api_key, sample_image_file):
     
     for prompt in prompts:
         result = analyze_image(
-            input_file_path=str(sample_image_file),
+            input_source=str(sample_image_file),
             prompt=prompt,
             output_directory=str(temp_dir)
         )

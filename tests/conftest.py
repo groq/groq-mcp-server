@@ -20,10 +20,11 @@ def mock_groq_api_key(monkeypatch):
 def mock_httpx_client(monkeypatch):
     """Mock httpx client for non-integration tests"""
     class MockResponse:
-        def __init__(self, status_code=200, json_data=None, text=""):
+        def __init__(self, status_code=200, json_data=None, text="", content=b""):
             self.status_code = status_code
             self._json_data = json_data or {}
             self._text = text
+            self.content = content
 
         def json(self):
             return self._json_data
@@ -50,18 +51,36 @@ def mock_httpx_client(monkeypatch):
                 json_data={"text": "This is a test translation"},
                 text="This is a test translation"
             )
+        # Mock TTS response
+        elif "audio/speech" in args[0]:
+            return MockResponse(
+                status_code=200,
+                content=b"mock_audio_content"
+            )
         # Mock chat completion response (including vision)
         elif "chat/completions" in args[0]:
             # Check if this is a vision request
-            if any(msg.get("content", [{}])[0].get("type") == "image_url" 
-                  for msg in kwargs.get("json", {}).get("messages", [])):
+            messages = kwargs.get("json", {}).get("messages", [])
+            is_vision = False
+            for msg in messages:
+                content = msg.get("content")
+                if isinstance(content, list):
+                    if any(item.get("type") == "image_url" for item in content):
+                        is_vision = True
+                        break
+                elif isinstance(content, dict):
+                    if content.get("type") == "image_url":
+                        is_vision = True
+                        break
+            
+            if is_vision:
                 # Check if JSON response is requested
                 if kwargs.get("json", {}).get("response_format", {}).get("type") == "json_object":
                     return MockResponse(
                         json_data={
                             "choices": [{
                                 "message": {
-                                    "content": {
+                                    "content": json.dumps({
                                         "description": "The image depicts a red square against a black background. The red square is centered in the image and is a solid, bright red color.",
                                         "colors": {
                                             "background": "black",
@@ -71,7 +90,7 @@ def mock_httpx_client(monkeypatch):
                                             "shape": "square",
                                             "position": "centered"
                                         }
-                                    }
+                                    })
                                 }
                             }]
                         }
@@ -105,7 +124,22 @@ def mock_httpx_client(monkeypatch):
             )
         return MockResponse(status_code=404)
 
+    def mock_get(*args, **kwargs):
+        # Mock the /models listing endpoint
+        if "/models" in args[0]:
+            return MockResponse(
+                json_data={"data": [
+                    {"id": "llama-3.3-70b-versatile", "owned_by": "Meta",
+                     "context_window": 131072, "active": True},
+                    {"id": "openai/gpt-oss-120b", "owned_by": "OpenAI",
+                     "context_window": 131072, "active": True},
+                ]}
+            )
+        return MockResponse(status_code=404)
+
     monkeypatch.setattr(httpx, "post", mock_post)
+    monkeypatch.setattr(httpx.Client, "post", lambda self, *args, **kwargs: mock_post(*args, **kwargs))
+    monkeypatch.setattr(httpx.Client, "get", lambda self, *args, **kwargs: mock_get(*args, **kwargs))
 
 @pytest.fixture
 def sample_audio_file(temp_dir):

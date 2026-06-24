@@ -240,7 +240,7 @@ def analyze_image(
     save_to_file: bool = False,
     ctx: Context = None,
     return_image: bool = False,
-) -> Union[TextContent, Image]:
+) -> TextContent:
     """
     Supports file paths, client-uploaded images/resources via ctx.read_resource(),
     base64-encoded image data, and raw image buffers.
@@ -306,7 +306,7 @@ def analyze_image_json(
     save_to_file: bool = False,
     ctx: Context = None,
     return_image: bool = False,
-) -> Union[TextContent, Image]:
+) -> TextContent:
     """
     Supports file paths, client-uploaded images/resources via ctx.read_resource(),
     base64-encoded image data, and raw image buffers.
