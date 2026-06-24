@@ -107,15 +107,11 @@ def test_invalid_temperature(temp_dir, mock_groq_api_key, mock_httpx_client):
 def test_list_chat_models(mock_groq_api_key, mock_httpx_client):
     """Test listing available chat models"""
     result = list_chat_models()
-    
+
     assert result.type == "text"
-    assert "Available Groq Chat Models" in result.text
-    # Check for current models but don't be too specific about exact ones
-    assert any(model in result.text for model in [
-        "gemma2-9b-it",
-        "llama-3.3-70b-versatile",
-        "meta-llama/llama-4-scout-17b-16e-instruct"
-    ])
+    assert "Available Groq Models" in result.text
+    # Models come live from Groq's /models endpoint (mocked here)
+    assert "llama-3.3-70b-versatile" in result.text
 
 @pytest.mark.integration
 def test_chat_completion_integration(temp_dir, mock_groq_api_key):
