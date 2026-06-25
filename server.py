@@ -52,6 +52,12 @@ from src.groq_compound import (
     compound_chat_stream as core_compound_chat_stream
 )
 
+from src.groq_shell import (
+    run_shell_command as core_run_shell_command,
+    read_file as core_read_file,
+    write_file as core_write_file,
+)
+
 load_dotenv()
 groq_api_key = os.getenv("GROQ_API_KEY")
 base_path = os.getenv("BASE_OUTPUT_PATH")
@@ -586,6 +592,60 @@ def compound_tool(
         output_directory=output_directory,
         save_to_file=save_to_file
     )
+
+
+@mcp.tool(
+    description="""Run a shell command on the local system and return the combined output (stdout and stderr).
+    
+    ⚠️ SECURITY WARNING: This executes arbitrary shell commands on the local machine. Use with extreme caution.
+    
+    Args:
+        command: The shell command to execute
+        working_dir: The working directory in which to execute the command (optional)
+        timeout: Maximum time in seconds to allow the command to run (default 30)
+        
+    Returns:
+        TextContent with stdout or error/exit message.
+    """
+)
+def run_shell_command(
+    command: str,
+    working_dir: Optional[str] = None,
+    timeout: int = 30,
+) -> TextContent:
+    result = core_run_shell_command(command, working_dir, timeout)
+    return TextContent(type="text", text=result)
+
+
+@mcp.tool(
+    description="""Read the contents of a local file.
+    
+    Args:
+        path: Path to the local file to read
+        
+    Returns:
+        TextContent containing the file contents.
+    """
+)
+def read_file(path: str) -> TextContent:
+    result = core_read_file(path)
+    return TextContent(type="text", text=result)
+
+
+@mcp.tool(
+    description="""Write content to a local file.
+    
+    Args:
+        path: Path to the local file to write
+        content: The content to write to the file
+        
+    Returns:
+        TextContent indicating success or failure.
+    """
+)
+def write_file(path: str, content: str) -> TextContent:
+    result = core_write_file(path, content)
+    return TextContent(type="text", text=result)
 
 
 def main():
