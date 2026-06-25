@@ -38,8 +38,7 @@ def run_shell_command(command: str, working_dir: str | None = None, timeout: int
             actual_cwd = os.path.abspath(os.path.expanduser(working_dir))
             
         result = subprocess.run(
-            command,
-            shell=True,
+            ['powershell', '-NoProfile', '-Command', command],
             capture_output=True,
             cwd=actual_cwd,
             timeout=timeout
@@ -73,7 +72,6 @@ def write_file(path: str, content: str) -> str:
     """写入本地文件，返回成功/失败消息。"""
     try:
         full_path = os.path.abspath(os.path.expanduser(path))
-        # Ensure parent directory exists
         parent_dir = os.path.dirname(full_path)
         if parent_dir:
             os.makedirs(parent_dir, exist_ok=True)
