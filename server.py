@@ -72,6 +72,18 @@ groq_client = httpx.Client(
 mcp = FastMCP("groq-mcp")
 
 
+async def _read_image_resource(ctx: Context, uri: str) -> tuple[bytes, Optional[str]]:
+    resources = list(await ctx.read_resource(uri))
+    if not resources:
+        raise ValueError(f"Image resource returned no content: {uri}")
+
+    resource = resources[0]
+    if not isinstance(resource.content, bytes):
+        raise ValueError(f"Image resource must contain binary data: {uri}")
+
+    return resource.content, resource.mime_type
+
+
 
 # TTS wrapper with MCP decoration
 @mcp.tool(
@@ -230,7 +242,7 @@ def list_stt_models() -> TextContent:
         Text content with the direct image description, or FastMCP Image if return_image is True, or path to output file if save_to_file is True
     """
 )
-def analyze_image(
+async def analyze_image(
     image: str,
     prompt: str = "What's in this image?",
     model: Literal["scout", "maverick"] = DEFAULT_MODEL,
@@ -246,15 +258,12 @@ def analyze_image(
     base64-encoded image data, and raw image buffers.
     If return_image is True, returns a FastMCP Image object (for downstream use).
     """
-    import os
     # Skip validation for base64 data since we now handle it in _prepare_image_content
     
     img_data = None
     if ctx is not None and isinstance(image, str) and image.startswith("resource://"):
         # Client resource (uploaded/clipboard image)
-        img_data, mime_type = ctx.read_resource(image) if not hasattr(ctx, 'read_resource') or not callable(ctx.read_resource) else None
-        if img_data is None:
-            img_data, mime_type = ctx.read_resource(image)
+        img_data, mime_type = await _read_image_resource(ctx, image)
         input_source = img_data
     else:
         # Handle file paths and base64/buffer data
@@ -296,7 +305,7 @@ def analyze_image(
         Text content with the direct JSON response, or FastMCP Image if return_image is True, or path to output file if save_to_file is True
     """
 )
-def analyze_image_json(
+async def analyze_image_json(
     image: str,
     prompt: str = "Extract key information from this image as JSON",
     model: Literal["scout", "maverick"] = DEFAULT_MODEL,
@@ -312,15 +321,12 @@ def analyze_image_json(
     base64-encoded image data, and raw image buffers.
     If return_image is True, returns a FastMCP Image object (for downstream use).
     """
-    import os
     # Skip validation for base64 data since we now handle it in _prepare_image_content
     
     img_data = None
     if ctx is not None and isinstance(image, str) and image.startswith("resource://"):
         # Client resource (uploaded/clipboard image)
-        img_data, mime_type = ctx.read_resource(image) if not hasattr(ctx, 'read_resource') or not callable(ctx.read_resource) else None
-        if img_data is None:
-            img_data, mime_type = ctx.read_resource(image)
+        img_data, mime_type = await _read_image_resource(ctx, image)
         input_source = img_data
     else:
         # Handle file paths and base64/buffer data
