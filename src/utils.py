@@ -183,7 +183,7 @@ def handle_input_file(file_path: str, audio_content_check: bool = False, image_c
     if not path.exists() and path.parent.exists():
         parent_directory = path.parent
         similar_files = try_find_similar_files(path.name, parent_directory)
-        similapir_files_formatted = ",".join([str(file) for file in similar_files])
+        similar_files_formatted = ",".join([str(file) for file in similar_files])
         if similar_files:
             make_error(
                 f"File ({path}) does not exist. Did you mean any of these files: {similar_files_formatted}?"
