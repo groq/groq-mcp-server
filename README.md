@@ -28,59 +28,29 @@ With the Groq MCP server you can try tasks like:
 
 
 
-## Quickstart with Claude Desktop
+## Quickstart
 
-- Get a Groq API key for free at [console.groq.com](https://console.groq.com)
-2. Install `uv` (Python package manager), install with `curl -LsSf https://astral.sh/uv/install.sh | sh` or see the `uv` [repo](https://github.com/astral-sh/uv) for additional install methods.
-3. Go to Claude > Settings > Developer > Edit Config > claude_desktop_config.json to include the following:
+This server is installed from source only.
 
-```
-{
-  "mcpServers": {
-    "groq": {
-      "command": "uvx",
-      "args": ["groq-mcp"],
-      "env": {
-        "GROQ_API_KEY": "your_groq_api_key",
-        "BASE_OUTPUT_PATH": "/path/to/output/directory"  # Optional: Where to save generated files (default: ~/Desktop)
-      }
-    }
-  }
-}
-
-```
-
-If you're using Windows, you will have to enable "Developer Mode" in Claude Desktop to use the MCP server. Click "Help" in the hamburger menu in the top left and select "Enable Developer Mode".
-
-If you want to install the MCP from code, scroll down to "Contributing".
-
-
-## Other MCP Clients
-
-For other clients like Cursor and Windsurf:
-
-1. Install the package:
+1. Get a Groq API key at [console.groq.com](https://console.groq.com).
+2. Install `uv` (see the `uv` [repo](https://github.com/astral-sh/uv) for install methods).
+3. Clone this repository and set it up:
    ```bash
-   # Using UV (recommended)
-   uvx install groq-mcp
-
-   # Or using pip
-   pip install groq-mcp
+   git clone https://github.com/groq/groq-mcp-server
+   cd groq-mcp-server
+   ./scripts/setup.sh
+   cp .env.example .env
+   # Edit .env and add your API key
    ```
+4. Register the server with your MCP client:
+   - **Claude Desktop (macOS):** run `./scripts/install.sh`, then restart Claude Desktop.
+   - **Other clients (Cursor, Windsurf, etc.):** run `uv run python config.py --print` and paste the
+     printed `mcpServers` entry into your client's MCP config. It points the client at this
+     checkout's Python and `server.py`, not at a package index.
 
-2. Generate configuration:
-   ```bash
-   # Print config to screen
-   groq-mcp-config --api-key=your_groq_api_key --print
+If you're using Windows, enable "Developer Mode" in Claude Desktop to use the MCP server: click "Help" in the hamburger menu in the top left and select "Enable Developer Mode".
 
-   # Or save directly to config file (auto-detects location)
-   groq-mcp-config --api-key=your_groq_api_key
-
-   # Optional: Specify custom output path
-   groq-mcp-config --api-key=your_groq_api_key --output-path=/path/to/outputs
-   ```
-
-That's it! Your MCP client can now use these Groq capabilities:
+Your MCP client can then use these Groq capabilities:
 
 - 🗣️ Text-to-Speech (TTS): Fast, natural-sounding speech synthesis
 - 👂 Speech-to-Text (STT): Accurate transcription and translation
@@ -100,7 +70,7 @@ If you want to contribute or run from source:
 1. Clone the repository:
    ```bash
    git clone https://github.com/groq/groq-mcp-server
-   cd groq-mcp
+   cd groq-mcp-server
    ```
 
 2. Run the setup script:
@@ -130,7 +100,7 @@ If you want to contribute or run from source:
 1. Clone the repository:
    ```bash
    git clone https://github.com/groq/groq-mcp-server
-   cd groq-mcp
+   cd groq-mcp-server
    ```
 
 2. Create a virtual environment and install dependencies [using uv](https://github.com/astral-sh/uv):

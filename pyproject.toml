@@ -24,6 +24,7 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
     "Topic :: Software Development :: Libraries :: Python Modules",
+    "Private :: Do Not Upload",
 ]
 dependencies = [
     "mcp[cli]>=1.6.0",
@@ -38,14 +39,13 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/groq/groq-mcp"
-Repository = "https://github.com/groq/groq-mcp.git"
-Documentation = "https://github.com/groq/groq-mcp#readme"
-"Bug Tracker" = "https://github.com/groq/groq-mcp/issues"
+Homepage = "https://github.com/groq/groq-mcp-server"
+Repository = "https://github.com/groq/groq-mcp-server.git"
+Documentation = "https://github.com/groq/groq-mcp-server#readme"
+"Bug Tracker" = "https://github.com/groq/groq-mcp-server/issues"
 
 [project.scripts]
 groq-mcp = "server:main"
-groq-mcp-config = "config:main"
 
 [project.optional-dependencies]
 dev = [
